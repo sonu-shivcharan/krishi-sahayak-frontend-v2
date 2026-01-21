@@ -20,17 +20,16 @@ export default function VoiceChat() {
     });
 
   // 1. Initialize Player on Mount
-  // 1. Initialize Player on Mount
   useEffect(() => {
     // Initialize PCMPlayer with Gemini's specs
     audioPlayerRef.current = new PCMPlayer({
       inputCodec: "Int16", // Gemini sends 16-bit integers
       channels: 1, // Mono
       sampleRate: 24000, // 24kHz sample rate
-      flushTime: 50,
+      flushTime: 100,
       fftSize: 2048, // ✅ ADDED: Required by TS types (Power of 2: 1024, 2048, 4096)
     });
-    audioPlayerRef.current.volume(5.0);
+    audioPlayerRef.current.volume(3.0);
     return () => {
       // Cleanup
       if (audioPlayerRef.current) {
@@ -83,35 +82,33 @@ export default function VoiceChat() {
   const toggleMicrophone = async () => {
     if (isRecording) {
       audioRecorderRef.current?.stop();
+      audioRecorderRef.current = null;
       setIsRecording(false);
-    } else {
-      audioRecorderRef.current = new AudioRecorder((base64Data) => {
-        if (connected) {
-          if (connected) {
-            send("hey i am sonu"); // Sending empty text or specific signal can trigger end-of-turn
-          }
-          send({
-            mimeType: "audio/pcm;rate=16000",
-            data: base64Data,
-          });
-        }
-      });
-      try {
-        await audioRecorderRef.current.start();
-        setIsRecording(true);
-      } catch (err) {
-        console.error("Mic Error:", err);
+      return;
+    }
+
+    if (audioRecorderRef.current) return; // ✅ prevent duplicate
+
+    audioRecorderRef.current = new AudioRecorder((base64Data) => {
+      if (connected) {
+        send({
+          mimeType: "audio/pcm;rate=16000",
+          data: base64Data,
+        });
       }
+    });
+
+    try {
+      await audioRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Mic Error:", err);
     }
   };
 
   // 4. Connect
   const handleConnect = async () => {
     try {
-      // Very Important: Resume browser audio context on click
-      // PCMPlayer exposes its context via `.audioCtx` usually, or just playing sound wakes it.
-      // Typically the library handles this on the first .feed(), but explicit resume is safer.
-
       if (audioPlayerRef.current?.audioCtx?.state === "suspended") {
         await audioPlayerRef.current.audioCtx.resume();
       }
