@@ -19,12 +19,22 @@ import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { MenuIcon } from "lucide-react";
 
 export function Chat() {
-  const [chatSessions, setChatSessions] = useState<Array<{ id: string; title: string; messages: Array<{ id: string; role: "user" | "assistant"; content: string }> }>>([]);
+  const [chatSessions, setChatSessions] = useState<
+    Array<{
+      id: string;
+      title: string;
+      messages: Array<{
+        id: string;
+        role: "user" | "assistant";
+        content: string;
+      }>;
+    }>
+  >([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const currentChat = chatSessions.find(chat => chat.id === currentChatId);
+  const currentChat = chatSessions.find((chat) => chat.id === currentChatId);
   const messages = currentChat?.messages || [];
 
   const createNewChat = () => {
@@ -33,28 +43,31 @@ export function Chat() {
       title: "New Chat",
       messages: [],
     };
-    setChatSessions(prev => [newChat, ...prev]);
+    setChatSessions((prev) => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
   };
 
   const updateChatTitle = (chatId: string, firstMessage: string) => {
-    setChatSessions(prev => 
-      prev.map(chat => 
-        chat.id === chatId 
-          ? { ...chat, title: firstMessage.slice(0, 30) + (firstMessage.length > 30 ? '...' : '') }
-          : chat
-      )
+    setChatSessions((prev) =>
+      prev.map((chat) =>
+        chat.id === chatId
+          ? {
+              ...chat,
+              title:
+                firstMessage.slice(0, 30) +
+                (firstMessage.length > 30 ? "..." : ""),
+            }
+          : chat,
+      ),
     );
   };
 
   const updateMessages = (newMessages: typeof messages) => {
     if (!currentChatId) return;
-    setChatSessions(prev => 
-      prev.map(chat => 
-        chat.id === currentChatId 
-          ? { ...chat, messages: newMessages }
-          : chat
-      )
+    setChatSessions((prev) =>
+      prev.map((chat) =>
+        chat.id === currentChatId ? { ...chat, messages: newMessages } : chat,
+      ),
     );
   };
 
@@ -78,13 +91,13 @@ export function Chat() {
       userMessage,
       { id: assistantId, role: "assistant" as const, content: "" },
     ];
-    
+
     updateMessages(newMessages);
-    
+
     if (messages.length === 0) {
       updateChatTitle(currentChatId, message.text);
     }
-    
+
     setInput("");
     setIsLoading(true);
 
@@ -92,7 +105,10 @@ export function Chat() {
       const response = await fetch("http://localhost:3000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: message.text }),
+        body: JSON.stringify({
+          query: message.text,
+          conversationId: currentChatId,
+        }),
       });
 
       const reader = response.body?.getReader();
@@ -208,7 +224,6 @@ export function Chat() {
               />
             </SheetContent>
           </Sheet>
-          
           <h1 className="text-lg font-semibold">Krishi Sahayak</h1>
           <div className="w-10 md:hidden" /> {/* Spacer for centering */}
         </div>
@@ -219,7 +234,9 @@ export function Chat() {
                 <MessageContent>
                   {message.role === "assistant" ? (
                     message.content.startsWith("shimmer:") ? (
-                      <Shimmer>{message.content.replace("shimmer:", "")}</Shimmer>
+                      <Shimmer>
+                        {message.content.replace("shimmer:", "")}
+                      </Shimmer>
                     ) : (
                       <MessageResponse>{message.content}</MessageResponse>
                     )
