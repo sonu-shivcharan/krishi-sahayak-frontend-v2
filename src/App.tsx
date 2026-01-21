@@ -1,12 +1,11 @@
 import "./App.css";
-import { Chat } from "./components/chat";
-import VoiceChat from "./components/live";
+import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { routeTree } from "./routeTree.gen";
 
 function App() {
   return (
     <div className="h-screen">
-      {/* <Chat /> */}
-      <VoiceChat />
+      <RouterProvider router={createRouter({ routeTree })} />
     </div>
   );
 }

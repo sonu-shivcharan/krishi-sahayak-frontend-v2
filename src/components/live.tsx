@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
 import { AudioRecorder } from "@/lib/audio-utils";
 import { Modality } from "@google/genai";
-import PCMPlayer from "pcm-player"; // ✅ Import the library
+import PCMPlayer from "pcm-player";
+import { getGeminiToken } from "@/lib/getGeminiToken";
+import { Button } from "./ui/button";
 
 export default function VoiceChat() {
   const [isRecording, setIsRecording] = useState(false);
@@ -16,10 +18,11 @@ export default function VoiceChat() {
       model: "gemini-2.0-flash-exp",
       config: {
         responseModalities: [Modality.AUDIO],
+        systemInstruction: `You are "Krishi Sahayak", a Digital Krishi Officer designed to help farmers with clear,
+practical and reliable agricultural guidance you have to greet the user as soon as connect prefer indian languges for initial greeting`,
       },
     });
 
-  // 1. Initialize Player on Mount
   useEffect(() => {
     // Initialize PCMPlayer with Gemini's specs
     audioPlayerRef.current = new PCMPlayer({
@@ -91,6 +94,7 @@ export default function VoiceChat() {
 
     audioRecorderRef.current = new AudioRecorder((base64Data) => {
       if (connected) {
+        console.log("sending");
         send({
           mimeType: "audio/pcm;rate=16000",
           data: base64Data,
@@ -113,12 +117,7 @@ export default function VoiceChat() {
         await audioPlayerRef.current.audioCtx.resume();
       }
 
-      const resp = await fetch(
-        "http://localhost:3000/api/create-gemini-live-token",
-        { method: "POST" },
-      );
-      const data = await resp.json();
-      const apiKey = data.token?.name || data.accessToken;
+      const apiKey = await getGeminiToken();
       startSession(apiKey);
     } catch (e) {
       console.error(e);
@@ -137,28 +136,14 @@ export default function VoiceChat() {
       {/* ... Your JSX here ... */}
       <div className="flex space-x-4">
         {!connected ? (
-          <button
-            onClick={handleConnect}
-            className="bg-blue-600 text-white py-2 px-4 rounded"
-          >
-            Connect
-          </button>
+          <Button onClick={handleConnect}>Connect</Button>
         ) : (
-          <button
-            onClick={handleDisconnect}
-            className="bg-gray-200 text-gray-800 py-2 px-4 rounded"
-          >
-            Disconnect
-          </button>
+          <Button onClick={handleDisconnect}>Disconnect</Button>
         )}
       </div>
-      <button
-        onClick={toggleMicrophone}
-        disabled={!connected}
-        className="w-full py-4 bg-gray-100 rounded"
-      >
+      <Button onClick={toggleMicrophone} disabled={!connected}>
         {isRecording ? "Stop Mic" : "Start Mic"}
-      </button>
+      </Button>
     </div>
   );
 }
