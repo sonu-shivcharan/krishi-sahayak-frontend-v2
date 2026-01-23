@@ -17,8 +17,11 @@ import { ChatSidebar } from "./chat-sidebar";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { MenuIcon } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
 
 export function Chat() {
+  const { getToken } = useAuth();
+
   const [chatSessions, setChatSessions] = useState<
     Array<{
       id: string;
@@ -104,7 +107,10 @@ export function Chat() {
     try {
       const response = await fetch("http://localhost:3000/api/v1/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await getToken()}`,
+        },
         body: JSON.stringify({
           query: message.text,
           conversationId: currentChatId,
