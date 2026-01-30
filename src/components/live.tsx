@@ -15,7 +15,7 @@ export default function VoiceChat() {
 
   const { connected, startSession, stopSession, send, messages } =
     useGeminiLive({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.5-flash-native-audio-preview-12-2025",
       config: {
         responseModalities: [Modality.AUDIO],
         systemInstruction: `You are "Krishi Sahayak", a Digital Krishi Officer designed to help farmers with clear,
