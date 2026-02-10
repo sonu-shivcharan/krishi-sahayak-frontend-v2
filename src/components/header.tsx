@@ -1,19 +1,12 @@
-import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  UserButton,
-} from "@clerk/clerk-react";
-
 function Header() {
   return (
     <header>
-      <SignedOut>
+      {/* <SignedOut>
         <SignInButton forceRedirectUrl="/chat" />
       </SignedOut>
       <SignedIn>
         <UserButton />
-      </SignedIn>
+      </SignedIn> */}
     </header>
   );
 }
