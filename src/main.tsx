@@ -12,7 +12,7 @@ if (!PUBLISHABLE_KEY) {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ClerkProvider
-      signInFallbackRedirectUrl={"/dashboard"}
+      signInFallbackRedirectUrl={"/chat"}
       signUpFallbackRedirectUrl={"/onboard"}
       publishableKey={PUBLISHABLE_KEY}
     >
