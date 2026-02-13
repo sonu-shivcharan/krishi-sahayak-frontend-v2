@@ -51,8 +51,8 @@ export function useChatStream(): UseChatStreamReturn {
                 firstMessage.slice(0, 30) +
                 (firstMessage.length > 30 ? "..." : ""),
             }
-          : chat
-      )
+          : chat,
+      ),
     );
   };
 
@@ -73,9 +73,9 @@ export function useChatStream(): UseChatStreamReturn {
     }
 
     const userMessage: Message = {
-        id: Date.now().toString(),
-        role: "user",
-        content: message.text,
+      id: Date.now().toString(),
+      role: "user",
+      content: message.text,
     };
 
     const assistantId = (Date.now() + 1).toString();
@@ -84,48 +84,48 @@ export function useChatStream(): UseChatStreamReturn {
     setChatSessions((prev) => {
       const chatIndex = prev.findIndex((c) => c.id === tempChatId);
       if (chatIndex === -1) return prev;
-      
+
       const updatedChat = {
         ...prev[chatIndex],
         messages: [
-            ...prev[chatIndex].messages, 
-            userMessage, 
-            { id: assistantId, role: "assistant" as const, content: "" }
+          ...prev[chatIndex].messages,
+          userMessage,
+          { id: assistantId, role: "assistant" as const, content: "" },
         ],
       };
-      
+
       const newSessions = [...prev];
       newSessions[chatIndex] = updatedChat;
       return newSessions;
     });
 
-    if (chatSessions.find(c => c.id === tempChatId)?.messages.length === 0) {
-        updateChatTitle(tempChatId, message.text);
+    if (chatSessions.find((c) => c.id === tempChatId)?.messages.length === 0) {
+      updateChatTitle(tempChatId, message.text);
     }
 
     setInput("");
     setIsLoading(true);
 
     try {
-        // Determine endpoint and payload
-        // Valid backend IDs are MongodDB ObjectIds (24 hex chars).
-        // Temp IDs are Timestamps (usually shorter or just digits).
-        const isNewConversation = tempChatId.length < 24; 
+      // Determine endpoint and payload
+      // Valid backend IDs are MongodDB ObjectIds (24 hex chars).
+      // Temp IDs are Timestamps (usually shorter or just digits).
+      const isNewConversation = tempChatId.length < 24;
 
-        const url = isNewConversation 
-            ? "http://localhost:3000/api/v1/conversations/start"
-            : `http://localhost:3000/api/v1/conversations/${tempChatId}`;
-        
-        const response = await fetch(url, {
+      const url = isNewConversation
+        ? "http://localhost:3000/api/v1/conversations/start"
+        : `http://localhost:3000/api/v1/conversations/${tempChatId}`;
+      const token = await getToken({ skipCache: true });
+      const response = await fetch(url, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await getToken()}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-            message: message.text,
+          message: message.text,
         }),
-        });
+      });
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -141,98 +141,108 @@ export function useChatStream(): UseChatStreamReturn {
         buffer = lines.pop() || "";
 
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.trim() === "") continue;
-            if (line.startsWith("event:")) {
-                const eventType = line.slice(6).trim();
-                
-                if (i + 1 < lines.length) {
-                    const nextLine = lines[i + 1];
-                    if (nextLine.startsWith("data:")) {
-                        // Skip the data line in the next iteration
-                        i++;
-                        
-                        const dataStr = nextLine.slice(5);
-                        try {
-                            const data = JSON.parse(dataStr);
+          const line = lines[i];
+          if (line.trim() === "") continue;
+          if (line.startsWith("event:")) {
+            const eventType = line.slice(6).trim();
 
-                            if (eventType === "initial") {
-                             const { conversationId, conversationTitle } = data;
-                             
-                             if (conversationId && tempChatId !== conversationId) {
-                                 // Replace temp ID with real ID
-                                 setChatSessions((prev) => 
-                                    prev.map((chat) => 
-                                        chat.id === tempChatId 
-                                            ? { ...chat, id: conversationId, title: conversationTitle || chat.title }
-                                            : chat
-                                    )
-                                 );
-                                 setCurrentChatId(conversationId);
-                             }
-                        } else if (eventType === "status") {
-                            let statusText = "";
-                            if (data.type === "thinking") {
-                                statusText = "shimmer:Thinking...";
-                            } else if (data.type === "toolCall") {
-                                statusText = `shimmer:Using tool ${data.name || ""}...`;
-                            }
+            if (i + 1 < lines.length) {
+              const nextLine = lines[i + 1];
+              if (nextLine.startsWith("data:")) {
+                // Skip the data line in the next iteration
+                i++;
 
-                            if (statusText) {
-                                 setChatSessions((prev) => {
-                                    return prev.map((chat) => ({
-                                        ...chat,
-                                        messages: chat.messages.map((msg) =>
-                                            msg.id === assistantId
-                                                ? { ...msg, content: statusText }
-                                                : msg
-                                        ),
-                                    }));
-                                });
-                            }
-                        } else if (eventType === "chunk") {
-                            const content = data.chunkContent || data.content || (typeof data === 'string' ? data : "");
-                            
-                            if (content) {
-                                setChatSessions((prev) => {
-                                    return prev.map((chat) => ({
-                                        ...chat,
-                                        messages: chat.messages.map((msg) => {
-                                            if (msg.id === assistantId) {
-                                                if (msg.content.startsWith("shimmer:")) {
-                                                    return { ...msg, content: content };
-                                                }
-                                                return { ...msg, content: msg.content + content };
-                                            }
-                                            return msg;
-                                        }),
-                                    }));
-                                });
-                            }
-                        } else if (eventType === "end") {
-                            // Stream finished
-                        }
-                    } catch (e) {
-                         console.error("Failed to parse SSE data:", e);
+                const dataStr = nextLine.slice(5);
+                try {
+                  const data = JSON.parse(dataStr);
+
+                  if (eventType === "initial") {
+                    const { conversationId, conversationTitle } = data;
+
+                    if (conversationId && tempChatId !== conversationId) {
+                      // Replace temp ID with real ID
+                      setChatSessions((prev) =>
+                        prev.map((chat) =>
+                          chat.id === tempChatId
+                            ? {
+                                ...chat,
+                                id: conversationId,
+                                title: conversationTitle || chat.title,
+                              }
+                            : chat,
+                        ),
+                      );
+                      setCurrentChatId(conversationId);
                     }
+                  } else if (eventType === "status") {
+                    let statusText = "";
+                    if (data.type === "thinking") {
+                      statusText = "shimmer:Thinking...";
+                    } else if (data.type === "toolCall") {
+                      statusText = `shimmer:Using tool ${data.name || ""}...`;
+                    }
+
+                    if (statusText) {
+                      setChatSessions((prev) => {
+                        return prev.map((chat) => ({
+                          ...chat,
+                          messages: chat.messages.map((msg) =>
+                            msg.id === assistantId
+                              ? { ...msg, content: statusText }
+                              : msg,
+                          ),
+                        }));
+                      });
+                    }
+                  } else if (eventType === "chunk") {
+                    const content =
+                      data.chunkContent ||
+                      data.content ||
+                      (typeof data === "string" ? data : "");
+
+                    if (content) {
+                      setChatSessions((prev) => {
+                        return prev.map((chat) => ({
+                          ...chat,
+                          messages: chat.messages.map((msg) => {
+                            if (msg.id === assistantId) {
+                              if (msg.content.startsWith("shimmer:")) {
+                                return { ...msg, content: content };
+                              }
+                              return { ...msg, content: msg.content + content };
+                            }
+                            return msg;
+                          }),
+                        }));
+                      });
+                    }
+                  } else if (eventType === "end") {
+                    // Stream finished
+                  }
+                } catch (e) {
+                  console.error("Failed to parse SSE data:", e);
                 }
+              }
             }
+          }
         }
       }
-      }
     } catch (error) {
-       console.error("Chat error:", error);
-       setChatSessions((prev) => {
-          // Find chat with this message
-          return prev.map(chat => ({
-             ...chat,
-             messages: chat.messages.map(msg => 
-               msg.id === assistantId 
-                 ? { ...msg, content: msg.content + "\n[Error: Failed to get response]" }
-                 : msg
-             )
-          }));
-       });
+      console.error("Chat error:", error);
+      setChatSessions((prev) => {
+        // Find chat with this message
+        return prev.map((chat) => ({
+          ...chat,
+          messages: chat.messages.map((msg) =>
+            msg.id === assistantId
+              ? {
+                  ...msg,
+                  content: msg.content + "\n[Error: Failed to get response]",
+                }
+              : msg,
+          ),
+        }));
+      });
     } finally {
       setIsLoading(false);
     }
