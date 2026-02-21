@@ -12,10 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as OnboardRouteImport } from './routes/onboard'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ChatLiveRouteImport } from './routes/chat-live'
-import { Route as ChatRouteImport } from './routes/chat'
+import { Route as ChatLayoutRouteImport } from './routes/_chat-layout'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as ChatLayoutChatRouteImport } from './routes/_chat-layout.chat'
 import { Route as authSignupRouteImport } from './routes/(auth)/signup'
 import { Route as authSigninRouteImport } from './routes/(auth)/signin'
+import { Route as ChatLayoutCChatIdRouteImport } from './routes/_chat-layout.c.$chatId'
 
 const OnboardRoute = OnboardRouteImport.update({
   id: '/onboard',
@@ -32,15 +35,24 @@ const ChatLiveRoute = ChatLiveRouteImport.update({
   path: '/chat-live',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChatRoute = ChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
+const ChatLayoutRoute = ChatLayoutRouteImport.update({
+  id: '/_chat-layout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/app/',
+  path: '/app/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatLayoutChatRoute = ChatLayoutChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => ChatLayoutRoute,
 } as any)
 const authSignupRoute = authSignupRouteImport.update({
   id: '/(auth)/signup',
@@ -52,73 +64,93 @@ const authSigninRoute = authSigninRouteImport.update({
   path: '/signin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatLayoutCChatIdRoute = ChatLayoutCChatIdRouteImport.update({
+  id: '/c/$chatId',
+  path: '/c/$chatId',
+  getParentRoute: () => ChatLayoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/chat': typeof ChatRoute
   '/chat-live': typeof ChatLiveRoute
   '/dashboard': typeof DashboardRoute
   '/onboard': typeof OnboardRoute
   '/signin': typeof authSigninRoute
   '/signup': typeof authSignupRoute
+  '/chat': typeof ChatLayoutChatRoute
+  '/app/': typeof AppIndexRoute
+  '/c/$chatId': typeof ChatLayoutCChatIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/chat': typeof ChatRoute
   '/chat-live': typeof ChatLiveRoute
   '/dashboard': typeof DashboardRoute
   '/onboard': typeof OnboardRoute
   '/signin': typeof authSigninRoute
   '/signup': typeof authSignupRoute
+  '/chat': typeof ChatLayoutChatRoute
+  '/app': typeof AppIndexRoute
+  '/c/$chatId': typeof ChatLayoutCChatIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/chat': typeof ChatRoute
+  '/_chat-layout': typeof ChatLayoutRouteWithChildren
   '/chat-live': typeof ChatLiveRoute
   '/dashboard': typeof DashboardRoute
   '/onboard': typeof OnboardRoute
   '/(auth)/signin': typeof authSigninRoute
   '/(auth)/signup': typeof authSignupRoute
+  '/_chat-layout/chat': typeof ChatLayoutChatRoute
+  '/app/': typeof AppIndexRoute
+  '/_chat-layout/c/$chatId': typeof ChatLayoutCChatIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/chat'
     | '/chat-live'
     | '/dashboard'
     | '/onboard'
     | '/signin'
     | '/signup'
+    | '/chat'
+    | '/app/'
+    | '/c/$chatId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/chat'
     | '/chat-live'
     | '/dashboard'
     | '/onboard'
     | '/signin'
     | '/signup'
+    | '/chat'
+    | '/app'
+    | '/c/$chatId'
   id:
     | '__root__'
     | '/'
-    | '/chat'
+    | '/_chat-layout'
     | '/chat-live'
     | '/dashboard'
     | '/onboard'
     | '/(auth)/signin'
     | '/(auth)/signup'
+    | '/_chat-layout/chat'
+    | '/app/'
+    | '/_chat-layout/c/$chatId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ChatRoute: typeof ChatRoute
+  ChatLayoutRoute: typeof ChatLayoutRouteWithChildren
   ChatLiveRoute: typeof ChatLiveRoute
   DashboardRoute: typeof DashboardRoute
   OnboardRoute: typeof OnboardRoute
   authSigninRoute: typeof authSigninRoute
   authSignupRoute: typeof authSignupRoute
+  AppIndexRoute: typeof AppIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -144,11 +176,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatLiveRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/chat': {
-      id: '/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof ChatRouteImport
+    '/_chat-layout': {
+      id: '/_chat-layout'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ChatLayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -157,6 +189,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/app'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_chat-layout/chat': {
+      id: '/_chat-layout/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatLayoutChatRouteImport
+      parentRoute: typeof ChatLayoutRoute
     }
     '/(auth)/signup': {
       id: '/(auth)/signup'
@@ -172,17 +218,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authSigninRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_chat-layout/c/$chatId': {
+      id: '/_chat-layout/c/$chatId'
+      path: '/c/$chatId'
+      fullPath: '/c/$chatId'
+      preLoaderRoute: typeof ChatLayoutCChatIdRouteImport
+      parentRoute: typeof ChatLayoutRoute
+    }
   }
 }
 
+interface ChatLayoutRouteChildren {
+  ChatLayoutChatRoute: typeof ChatLayoutChatRoute
+  ChatLayoutCChatIdRoute: typeof ChatLayoutCChatIdRoute
+}
+
+const ChatLayoutRouteChildren: ChatLayoutRouteChildren = {
+  ChatLayoutChatRoute: ChatLayoutChatRoute,
+  ChatLayoutCChatIdRoute: ChatLayoutCChatIdRoute,
+}
+
+const ChatLayoutRouteWithChildren = ChatLayoutRoute._addFileChildren(
+  ChatLayoutRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ChatRoute: ChatRoute,
+  ChatLayoutRoute: ChatLayoutRouteWithChildren,
   ChatLiveRoute: ChatLiveRoute,
   DashboardRoute: DashboardRoute,
   OnboardRoute: OnboardRoute,
   authSigninRoute: authSigninRoute,
   authSignupRoute: authSignupRoute,
+  AppIndexRoute: AppIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
