@@ -71,7 +71,7 @@ export function useGeminiLive({ model, config }: UseGeminiLiveOptions = {}) {
         });
 
         sessionRef.current = session;
-      } catch (e) {
+      } catch (e: any) {
         console.error("Connection failed:", e);
         setError(e?.message ?? "Failed to connect");
         setConnected(false);
