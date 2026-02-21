@@ -1,6 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "../lib/apiClient";
+import { isAxiosError } from "axios";
 
 type UserData = {
   _id: string;
@@ -21,85 +24,77 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
 });
 
+const PUBLIC_ROUTES = ["/signin", "/signup", "/"];
+const COMMON_RESTRICTED_ROUTES = ["/signin", "/signup", "/"];
+
+const isFarmerRoute = (path: string) => path.startsWith("/chat") || path.startsWith("/c/");
+const isOfficerRoute = (path: string) => path.startsWith("/dashboard");
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { getToken, isLoaded: isClerkLoaded, isSignedIn } = useAuth();
-  const [user, setUser] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
+  const { data: user = null, isLoading: isQueryLoading, error } = useQuery({
+    queryKey: ["user", isSignedIn],
+    queryFn: async () => {
+      if (!isSignedIn) return null;
+      const token = await getToken();
+      if (!token) return null;
+
+      const response = await apiClient.get('/api/v1/users/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data.data as UserData;
+    },
+    enabled: isClerkLoaded,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    retry: (failureCount, err) => {
+      if (isAxiosError(err) && err.response?.status === 404) {
+        return false; // Do not retry if onboarding profile is missing
+      }
+      return failureCount < 3;
+    }
+  });
+
+  const isLoading = !isClerkLoaded || isQueryLoading;
+
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!isClerkLoaded) return;
+    if (!isClerkLoaded) return;
 
-      if (!isSignedIn) {
-        setUser(null);
-        setIsLoading(false);
-        
-        const currentPath = window.location.pathname;
-        if (
-          currentPath !== "/signin" &&
-          currentPath !== "/signup" &&
-          currentPath !== "/"
-        ) {
-          navigate({ to: "/signin" });
-        }
-        return;
+    const currentPath = window.location.pathname;
+
+    // 1. Not signed in
+    if (!isSignedIn) {
+      if (!PUBLIC_ROUTES.includes(currentPath)) {
+        navigate({ to: "/signin" });
       }
+      return;
+    }
 
-      try {
-        const token = await getToken();
-        if (!token) return;
-
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/users/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const userData: UserData = data.data;
-          setUser(userData);
-
-          // Redirect and route protection rules
-          const currentPath = window.location.pathname;
-          
-          if (userData.role === "farmer") {
-            // Farmers shouldn't be on auth pages, root, or dashboard
-            if (
-              currentPath === "/signin" ||
-              currentPath === "/signup" ||
-              currentPath === "/" ||
-              currentPath.startsWith("/dashboard")
-            ) {
-              navigate({ to: "/chat" });
-            }
-          } else if (userData.role === "officer") {
-            // Officers shouldn't be on auth pages, root, or chat
-            if (
-              currentPath === "/signin" ||
-              currentPath === "/signup" ||
-              currentPath === "/" ||
-              currentPath.startsWith("/chat")
-            ) {
-               navigate({ to: "/dashboard" } as any);
-            }
-          }
-          console.log("User role:", userData.role);   
-        } else {
-            setUser(null);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user profile:", error);
-      } finally {
-        setIsLoading(false);
+    // 2. Signed in, but profile not found (404) - Onboarding not completed
+    if (error && isAxiosError(error) && error.response?.status === 404) {
+      if (currentPath !== "/onboard") {
+        navigate({ to: "/onboard", });
       }
-    };
+      return;
+    }
 
-    fetchUser();
-  }, [isClerkLoaded, isSignedIn, getToken, navigate]);
+    // 3. Signed in and profile exists
+    if (user) {
+      if (user.role === "farmer") {
+        if (COMMON_RESTRICTED_ROUTES.includes(currentPath) || isOfficerRoute(currentPath)) {
+          navigate({ to: "/chat" });
+        }
+      } else if (user.role === "officer") {
+        if (COMMON_RESTRICTED_ROUTES.includes(currentPath) || isFarmerRoute(currentPath)) {
+          navigate({ to: "/dashboard" } as any);
+        }
+      }
+      console.log("User role:", user.role);
+    }
+  }, [isClerkLoaded, isSignedIn, user, error, navigate]);
 
-  if(isLoading) {
+  if (isLoading) {
     return <div>Loading...</div>;
   }
   return (
@@ -109,4 +104,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const useAppAuth = () => useContext(AuthContext);
+export const useAppAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAppAuth must be used within an AuthProvider");
+  }
+  return context;
+};

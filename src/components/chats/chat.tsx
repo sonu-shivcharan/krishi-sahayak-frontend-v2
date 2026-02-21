@@ -68,15 +68,20 @@ export function Chat() {
         <ConversationContent>
           {messages.map((message) => {
             const layoutRole = message.role;
-            const label = message.role === 'user' ? 'You' : 'Krishi AI';
-            const icon = message.role === 'user' ? <UserIcon className="h-3 w-3" /> : <BotIcon className="h-3 w-3" />;
-            
+            const label = message.role === "user" ? "You" : "Krishi AI";
+            const icon =
+              message.role === "user" ? (
+                <UserIcon className="h-3 w-3" />
+              ) : (
+                <BotIcon className="h-3 w-3" />
+              );
+
             return (
               <div key={message.id} className="flex flex-col gap-1">
                 <div
                   className={cn(
                     "flex items-center gap-1 text-xs text-muted-foreground px-1",
-                    layoutRole === "user" ? "justify-end" : "justify-start"
+                    layoutRole === "user" ? "justify-end" : "justify-start",
                   )}
                 >
                   {icon}

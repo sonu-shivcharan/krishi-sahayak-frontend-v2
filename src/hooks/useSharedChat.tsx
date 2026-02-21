@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { useChatStream } from "./use-chat-stream";
 import { useConversations } from "./useConversations";
 
