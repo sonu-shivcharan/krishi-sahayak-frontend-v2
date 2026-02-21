@@ -83,14 +83,25 @@ export function useChatStream(): UseChatStreamReturn {
     // Update local state immediately
     setChatSessions((prev) => {
       const chatIndex = prev.findIndex((c) => c.id === tempChatId);
-      if (chatIndex === -1) return prev;
+      if (chatIndex === -1) {
+        // If the chat session doesn't exist locally (e.g. we navigated to an existing chat ID), create it
+        const newChat: ChatSession = {
+          id: tempChatId as string,
+          title: "Conversation",
+          messages: [
+            userMessage,
+            { id: assistantId, role: "assistant" as const, content: "shimmer:Sending..." },
+          ],
+        };
+        return [newChat, ...prev];
+      }
 
       const updatedChat = {
         ...prev[chatIndex],
         messages: [
           ...prev[chatIndex].messages,
           userMessage,
-          { id: assistantId, role: "assistant" as const, content: "" },
+          { id: assistantId, role: "assistant" as const, content: "shimmer:Sending..." },
         ],
       };
 
