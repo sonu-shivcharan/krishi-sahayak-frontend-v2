@@ -99,6 +99,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     fetchUser();
   }, [isClerkLoaded, isSignedIn, getToken, navigate]);
 
+  if(isLoading) {
+    return <div>Loading...</div>;
+  }
   return (
     <AuthContext.Provider value={{ user, isLoading }}>
       {children}
