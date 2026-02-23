@@ -35,7 +35,7 @@ function RouteComponent() {
             </p>
           </div>
           <div className="flex justify-center">
-             <SignIn signUpUrl="/signup" />
+             <SignIn signUpUrl="/signup" forceRedirectUrl="/app" />
           </div>
         </div>
       </div>
