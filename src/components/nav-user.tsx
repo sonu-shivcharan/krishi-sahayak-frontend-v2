@@ -6,6 +6,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react"
+import { SignOutButton } from "@clerk/clerk-react"
 
 import {
   Avatar,
@@ -100,9 +101,13 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
+            <DropdownMenuItem asChild>
+              <SignOutButton>
+                <button className="flex w-full items-center">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </button>
+              </SignOutButton>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
