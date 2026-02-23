@@ -11,6 +11,7 @@ type UserData = {
   name: string;
   email: string;
   address: string;
+  profileImage?: string;
   role: "farmer" | "officer" | string;
 };
 
@@ -27,7 +28,7 @@ const AuthContext = createContext<AuthContextType>({
 const PUBLIC_ROUTES = ["/signin", "/signup", "/"];
 const COMMON_RESTRICTED_ROUTES = ["/signin", "/signup", "/"];
 
-const isFarmerRoute = (path: string) => path.startsWith("/chat") || path.startsWith("/c/");
+const isFarmerRoute = (path: string) => path.startsWith("/chat") || path.startsWith("/c/") || path.startsWith("/app");
 const isOfficerRoute = (path: string) => path.startsWith("/dashboard");
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -83,7 +84,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (user) {
       if (user.role === "farmer") {
         if (COMMON_RESTRICTED_ROUTES.includes(currentPath) || isOfficerRoute(currentPath)) {
-          navigate({ to: "/chat" });
+          navigate({ to: "/app" });
         }
       } else if (user.role === "officer") {
         if (COMMON_RESTRICTED_ROUTES.includes(currentPath) || isFarmerRoute(currentPath)) {
