@@ -37,7 +37,6 @@ import {
 import { cn } from "@/lib/utils";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
-  CornerDownLeftIcon,
   ImageIcon,
   Loader2Icon,
   MicIcon,

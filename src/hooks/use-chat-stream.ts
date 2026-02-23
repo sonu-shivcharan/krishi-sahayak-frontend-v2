@@ -20,6 +20,7 @@ interface UseChatStreamReturn {
   isLoading: boolean;
   setInput: (input: string) => void;
   setCurrentChatId: (id: string | null) => void;
+  setChatSessions: React.Dispatch<React.SetStateAction<ChatSession[]>>;
   createNewChat: () => void;
   handleSubmit: (message: { text: string }) => Promise<void>;
 }
@@ -266,6 +267,7 @@ export function useChatStream(): UseChatStreamReturn {
     isLoading,
     setInput,
     setCurrentChatId,
+    setChatSessions,
     createNewChat,
     handleSubmit,
   };
