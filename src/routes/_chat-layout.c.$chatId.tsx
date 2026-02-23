@@ -19,10 +19,14 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ChatSidebar } from "@/components/chat-sidebar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { MenuIcon, BotIcon, UserIcon, ShieldIcon } from "lucide-react";
+import { MenuIcon, BotIcon, UserIcon, ShieldIcon, Forward } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useSharedChat } from "@/hooks/useSharedChat";
 import { cn } from "@/lib/utils";
+
+import { useMutation } from "@tanstack/react-query";
+import { useAuth } from "@clerk/clerk-react";
+import { apiClient } from "@/lib/apiClient";
 
 export const Route = createFileRoute("/_chat-layout/c/$chatId")({
   component: RouteComponent,
@@ -60,9 +64,28 @@ function getSenderIcon(senderRole: MessageSenderRole) {
 function RouteComponent() {
   const { chatId } = Route.useParams();
   const { data, isLoading, isError } = useConversation(chatId);
-  console.log(chatId);
+  const { getToken } = useAuth();
 
-  
+  const forwardMutation = useMutation({
+    mutationFn: async () => {
+      const token = await getToken();
+      return apiClient.post(
+        "/api/v1/forwarded-queries/forward",
+        { conversationId: chatId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+    },
+    onSuccess: () => {
+      alert("Conversation forwarded to officer successfully!");
+    },
+    onError: (error) => {
+      console.error("Failed to forward conversation", error);
+      alert("Failed to forward conversation. Please try again.");
+    },
+  });
+
   const {
     chatSessions,
     allSessions,
@@ -97,10 +120,23 @@ function RouteComponent() {
             />
           </SheetContent>
         </Sheet>
-        <h1 className="text-lg font-semibold">
+        <h1 className="text-lg font-semibold flex-1 text-center md:text-left px-2 truncate">
           {data?.title || "Conversation"}
         </h1>
-        <div className="w-10 md:hidden" />
+        <div className="flex items-center shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => forwardMutation.mutate()}
+            disabled={forwardMutation.isPending}
+            className="gap-2"
+          >
+            <Forward className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {forwardMutation.isPending ? "Forwarding..." : "Forward to Officer"}
+            </span>
+          </Button>
+        </div>
       </div>
 
       {/* Message area */}

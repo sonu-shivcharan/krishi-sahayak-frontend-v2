@@ -24,6 +24,8 @@ export interface ForwardedQuery {
   forwardedAt: string;
   answeredBy?: string;
   answeredAt?: string;
+  question?: string;
+  summary?: string;
   __v?: number;
 
   // Added virtual properties to maintain compatibility with the UI until backend populates these fields:
@@ -68,7 +70,7 @@ export const useOfficerQueries = () => {
             userName: query.forwardedBy?.name || "Anonymous Farmer",
             location: query.forwardedBy?.address || fallbackLocation || "Unknown Location",
           },
-          originalQuery: query.originalQuery || `Query regarding conversation ID: ${query.conversation}`,
+          originalQuery: query.question || query.originalQuery || `Query regarding conversation ID: ${query.conversation}`,
         };
       });
     },
@@ -102,5 +104,39 @@ export const useAnswerQuery = () => {
       // Invalidate the queries list to refetch updated data
       queryClient.invalidateQueries({ queryKey: ["officerQueries"] });
     },
+  });
+};
+
+// Hook to fetch a user profile by ID (Officer Only)
+export const useUser = (userId: string | undefined) => {
+  const { getToken } = useAuth();
+
+  return useQuery({
+    queryKey: ["user", userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const token = await getToken();
+      const response = await apiClient.get<{
+        success: boolean;
+        data: {
+          _id: string;
+          name: string;
+          email: string;
+          profileImage?: string;
+          address?: string;
+          location?: {
+            type: string;
+            coordinates: number[];
+            district?: string;
+            taluka?: string;
+          };
+          role: string;
+        };
+      }>(`/api/v1/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data.data;
+    },
+    enabled: !!userId,
   });
 };

@@ -109,17 +109,20 @@ export function Chat() {
         </ConversationContent>
       </Conversation>
 
-      <div className="border-t p-4 shrink-0">
-        <PromptInput onSubmit={handleSubmit}>
-          <PromptInputTextarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            disabled={isLoading}
-          />
-          <PromptInputSubmit disabled={isLoading} />
-        </PromptInput>
-      </div>
+      {/* <div className="border-t p-4 shrink-0 bg-red-300"> */}
+      <PromptInput
+        onSubmit={handleSubmit}
+        className="border-t bg-transparent px-4 py-3 shrink-0"
+      >
+        <PromptInputTextarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask your agriculture-related question here..."
+          disabled={isLoading}
+        />
+        <PromptInputSubmit className="mx-2" disabled={isLoading} />
+      </PromptInput>
+      {/* </div> */}
     </div>
   );
 }
