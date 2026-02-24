@@ -25,8 +25,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
 });
 
-const PUBLIC_ROUTES = ["/signin", "/signup", "/"];
-const COMMON_RESTRICTED_ROUTES = ["/signin", "/signup", "/"];
+const PUBLIC_ROUTES = ["/signin", "/signup", ""];
+const COMMON_RESTRICTED_ROUTES = ["/signin", "/signup", ""];
 
 const isFarmerRoute = (path: string) => path.startsWith("/chat") || path.startsWith("/c/") || path.startsWith("/app");
 const isOfficerRoute = (path: string) => path.startsWith("/dashboard");

@@ -6,6 +6,7 @@ import {
   PromptInput,
   PromptInputTextarea,
   PromptInputSubmit,
+  PromptInputSpeechButton,
 } from "@/components/ai-elements/prompt-input";
 import {
   Conversation,
@@ -74,6 +75,12 @@ function ChatLayoutInner() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
+              disabled={isLoading}
+            />
+            <PromptInputSpeechButton
+              onTranscriptionChange={(transcript) =>
+                setInput(input + (input ? " " : "") + transcript)
+              }
               disabled={isLoading}
             />
             <PromptInputSubmit disabled={isLoading} />
