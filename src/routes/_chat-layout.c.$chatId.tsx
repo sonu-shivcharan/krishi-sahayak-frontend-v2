@@ -137,7 +137,7 @@ function RouteComponent() {
             const label = getSenderLabel(message.senderRole);
             const icon = getSenderIcon(message.senderRole);
             const isSystem = message.type === MessageType.SYSTEM;
-
+            
             // System messages: centered pill badge
             if (isSystem) {
               return (

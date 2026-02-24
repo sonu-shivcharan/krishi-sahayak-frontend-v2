@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryDetail } from "./QueryDetail";
+import { SchemeUploadDialog } from "./SchemeUploadDialog";
+
 
 export function OfficerDashboardView() {
   const { data: queries, isLoading, isError } = useOfficerQueries();
@@ -68,9 +70,13 @@ export function OfficerDashboardView() {
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0 md:flex-row mt-4">
       {/* Query List Panel */}
       <div className="flex w-full flex-col gap-4 md:w-1/3">
-        <h2 className="text-xl font-semibold tracking-tight">
-          Incoming Queries
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold tracking-tight">
+            Incoming Queries
+          </h2>
+          <SchemeUploadDialog />
+        </div>
+
         <ScrollArea className="h-[calc(100vh-12rem)] flex-1 rounded-xl border bg-card text-card-foreground">
           <div className="flex flex-col gap-2 p-4">
             {queries?.length === 0 ? (
