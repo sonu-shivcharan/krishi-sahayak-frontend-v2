@@ -15,6 +15,7 @@ import { Route as ChatLiveRouteImport } from './routes/chat-live'
 import { Route as ChatLayoutRouteImport } from './routes/_chat-layout'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppQueriesRouteImport } from './routes/app/queries'
 import { Route as ChatLayoutChatRouteImport } from './routes/_chat-layout.chat'
 import { Route as authSignupRouteImport } from './routes/(auth)/signup'
 import { Route as authSigninRouteImport } from './routes/(auth)/signin'
@@ -49,6 +50,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppQueriesRoute = AppQueriesRouteImport.update({
+  id: '/app/queries',
+  path: '/app/queries',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatLayoutChatRoute = ChatLayoutChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/signin': typeof authSigninRoute
   '/signup': typeof authSignupRoute
   '/chat': typeof ChatLayoutChatRoute
+  '/app/queries': typeof AppQueriesRoute
   '/app/': typeof AppIndexRoute
   '/c/$chatId': typeof ChatLayoutCChatIdRoute
 }
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/signin': typeof authSigninRoute
   '/signup': typeof authSignupRoute
   '/chat': typeof ChatLayoutChatRoute
+  '/app/queries': typeof AppQueriesRoute
   '/app': typeof AppIndexRoute
   '/c/$chatId': typeof ChatLayoutCChatIdRoute
 }
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/(auth)/signin': typeof authSigninRoute
   '/(auth)/signup': typeof authSignupRoute
   '/_chat-layout/chat': typeof ChatLayoutChatRoute
+  '/app/queries': typeof AppQueriesRoute
   '/app/': typeof AppIndexRoute
   '/_chat-layout/c/$chatId': typeof ChatLayoutCChatIdRoute
 }
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/chat'
+    | '/app/queries'
     | '/app/'
     | '/c/$chatId'
   fileRoutesByTo: FileRoutesByTo
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/chat'
+    | '/app/queries'
     | '/app'
     | '/c/$chatId'
   id:
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/(auth)/signin'
     | '/(auth)/signup'
     | '/_chat-layout/chat'
+    | '/app/queries'
     | '/app/'
     | '/_chat-layout/c/$chatId'
   fileRoutesById: FileRoutesById
@@ -150,6 +162,7 @@ export interface RootRouteChildren {
   OnboardRoute: typeof OnboardRoute
   authSigninRoute: typeof authSigninRoute
   authSignupRoute: typeof authSignupRoute
+  AppQueriesRoute: typeof AppQueriesRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/queries': {
+      id: '/app/queries'
+      path: '/app/queries'
+      fullPath: '/app/queries'
+      preLoaderRoute: typeof AppQueriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_chat-layout/chat': {
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardRoute: OnboardRoute,
   authSigninRoute: authSigninRoute,
   authSignupRoute: authSignupRoute,
+  AppQueriesRoute: AppQueriesRoute,
   AppIndexRoute: AppIndexRoute,
 }
 export const routeTree = rootRouteImport

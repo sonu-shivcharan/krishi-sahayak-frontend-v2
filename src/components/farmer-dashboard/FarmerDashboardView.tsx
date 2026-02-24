@@ -6,22 +6,20 @@ import {
   ArrowRight, 
   MapPin, 
   CheckCircle2, 
-  Clock, 
   BadgeHelp,
-  Sprout
+  Sprout,
+  Clock
 } from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import { useFarmerQueries } from "../../hooks/useFarmerQueries";
 import { useNotifications } from "../../hooks/useNotifications";
 import { useAppAuth } from "@/providers/AuthProvider";
-import type { ForwardedQuery } from "../../hooks/useOfficerQueries";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -30,22 +28,15 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Streamdown } from "streamdown";
+import { QueryDetailsDialog } from "./QueryDetailsDialog";
+import type { ForwardedQuery } from "../../hooks/useOfficerQueries";
 
 export function FarmerDashboardView() {
   const { user } = useAppAuth();
   const { data: queries, isLoading: queriesLoading } = useFarmerQueries();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'queries' | 'answered'>('overview');
   const [selectedQueryForDetails, setSelectedQueryForDetails] = useState<ForwardedQuery | null>(null);
 
   const greeting = () => {
@@ -53,6 +44,19 @@ export function FarmerDashboardView() {
     if (hour < 12) return "Good Morning";
     if (hour < 17) return "Good Afternoon";
     return "Good Evening";
+  };
+
+  const recentQueries = queries?.slice(0, 3) || [];
+
+  const handleNotificationClick = (n: any) => {
+    if (!n.isRead) markAsRead(n._id);
+    
+    if (n.data?.queryId) {
+      const query = queries?.find(q => q._id === n.data.queryId);
+      if (query) {
+        setSelectedQueryForDetails(query);
+      }
+    }
   };
 
   return (
@@ -99,7 +103,7 @@ export function FarmerDashboardView() {
                     <DropdownMenuItem 
                       key={n._id} 
                       className={`p-4 cursor-pointer focus:bg-primary/5 border-l-2 transition-colors ${n.isRead ? 'border-transparent' : 'border-primary bg-primary/5'}`}
-                      onClick={() => !n.isRead && markAsRead(n._id)}
+                      onClick={() => handleNotificationClick(n)}
                     >
                       <div className="flex flex-col gap-1 w-full">
                         <div className="flex justify-between items-start gap-2">
@@ -202,223 +206,66 @@ export function FarmerDashboardView() {
           </Card>
         </div>
 
-        {/* Right Column: Forwarded Queries */}
+        {/* Right Column: Recent Queries Preview */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Sprout className="h-6 w-6 text-primary" /> Forwarded to Officers
+              <Sprout className="h-6 w-6 text-primary" /> Recent Queries
             </h2>
-            <div className="flex bg-muted p-1 rounded-lg">
-              <Button 
-                variant={activeTab === 'overview' ? 'default' : 'ghost'} 
-                size="sm" 
-                className="h-8 px-4 rounded-md text-xs font-semibold"
-                onClick={() => setActiveTab('overview')}
-              >
-                All Queries
+            <Link to="/app/queries">
+              <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 font-bold">
+                View All <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
-              <Button 
-                variant={activeTab === 'queries' ? 'default' : 'ghost'} 
-                size="sm" 
-                className="h-8 px-4 rounded-md text-xs font-semibold"
-                onClick={() => setActiveTab('queries')}
-              >
-                Pending
-              </Button>
-              <Button 
-                variant={activeTab === 'answered' ? 'default' : 'ghost'} 
-                size="sm" 
-                className="h-8 px-4 rounded-md text-xs font-semibold"
-                onClick={() => setActiveTab('answered')}
-              >
-                Answered
-              </Button>
-            </div>
+            </Link>
           </div>
 
-          <ScrollArea className="h-[600px] rounded-2xl border border-primary/10 bg-card shadow-inner">
-            <div className="p-4 flex flex-col gap-4">
-              {queriesLoading ? (
-                Array(3).fill(0).map((_, i) => (
-                  <Card key={i} className="border-none shadow-sm animate-pulse">
-                    <CardHeader className="pb-2">
-                      <Skeleton className="h-5 w-1/3 mb-2" />
-                      <Skeleton className="h-4 w-full" />
-                    </CardHeader>
-                    <CardFooter>
-                      <Skeleton className="h-8 w-20" />
-                    </CardFooter>
-                  </Card>
-                ))
-              ) : queries?.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-                  <div className="p-6 bg-muted rounded-full">
-                    <BadgeHelp className="h-12 w-12 text-muted-foreground/50" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">No Queries Found</h3>
-                    <p className="text-muted-foreground max-w-xs">You haven't forwarded any queries to our experts yet. Use the AI Chat to get started!</p>
-                  </div>
-                  <Link to="/chat">
-                    <Button variant="outline" className="mt-2 border-primary/20">Ask AI First</Button>
-                  </Link>
-                </div>
-              ) : (
-                queries?.filter((q: ForwardedQuery) => {
-                  if (activeTab === 'overview') return true;
-                  if (activeTab === 'queries') return q.status === 'pending';
-                  if (activeTab === 'answered') return q.status === 'answered';
-                  return true;
-                }).map((query: ForwardedQuery) => (
-                  <Card key={query._id} className="border-primary/5 hover:border-primary/20 transition-all hover:shadow-md group overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4">
-                      <Badge 
-                        variant={query.status === 'answered' ? 'default' : 'secondary'}
-                        className={`capitalize px-3 py-1 ${query.status === 'answered' ? 'bg-green-500 hover:bg-green-600' : ''}`}
-                      >
-                        {query.status}
-                      </Badge>
-                    </div>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+          <div className="grid grid-cols-1 gap-4">
+            {queriesLoading ? (
+              Array(2).fill(0).map((_, i) => (
+                <Card key={i} className="border-primary/5 shadow-sm animate-pulse h-32" />
+              ))
+            ) : recentQueries.length === 0 ? (
+              <Card className="border-dashed border-2 border-primary/10 bg-muted/30 p-12 flex flex-col items-center justify-center text-center gap-4">
+                <BadgeHelp className="h-12 w-12 text-muted-foreground/30" />
+                <p className="text-muted-foreground max-w-xs text-sm">No recent queries. Your forwarded questions will appear here.</p>
+              </Card>
+            ) : (
+              recentQueries.map((query) => (
+                <Card key={query._id} className="border-primary/5 hover:border-primary/20 transition-all hover:shadow-md group overflow-hidden">
+                  <CardHeader className="p-4 pb-2 flex-row justify-between items-start">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         {formatDistanceToNow(new Date(query.forwardedAt), { addSuffix: true })}
-                        {query.location?.district && (
-                          <>
-                            <span className="mx-1">•</span>
-                            <MapPin className="h-3 w-3" />
-                            {query.location.district}
-                          </>
-                        )}
                       </div>
-                      <CardTitle className="text-lg line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                      <CardTitle className="text-base line-clamp-1 group-hover:text-primary transition-colors pr-10">
                         {query.originalQuery || `Query #${query._id.slice(-6)}`}
                       </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pb-4">
-                      {query.summary && (
-                        <div className="p-3 rounded-lg bg-muted/30 text-xs text-muted-foreground line-clamp-3 italic">
-                          "{query.summary}"
-                        </div>
-                      )}
-                      
-                      {query.status === 'answered' && (
-                        <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/10">
-                          <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle2 className="h-4 w-4 text-primary" />
-                            <span className="text-xs font-bold text-primary uppercase tracking-wider">Expert Response</span>
-                          </div>
-                          <p className="text-sm text-foreground line-clamp-4 leading-relaxed">
-                            {query.answer}
-                          </p>
-                          <Button 
-                            variant="link" 
-                            size="sm" 
-                            className="px-0 h-auto mt-2 text-primary font-bold hover:no-underline"
-                            onClick={() => setSelectedQueryForDetails(query)}
-                          >
-                            Read Full Answer <ArrowRight className="h-3 w-3 ml-1" />
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter className="pt-0 flex justify-between items-center text-xs text-muted-foreground border-t border-primary/5 pt-3 mt-1">
-                      <span>Ref: {query._id.slice(-8).toUpperCase()}</span>
-                      {query.status === 'pending' && (
-                        <span className="flex items-center gap-1 text-amber-600 font-medium">
-                          <Clock className="h-3 w-3 animate-spin-slow" />
-                          Expert is reviewing...
-                        </span>
-                      )}
-                    </CardFooter>
-                  </Card>
-                ))
-              )}
-            </div>
-          </ScrollArea>
+                    </div>
+                    <Badge 
+                      variant={query.status === 'answered' ? 'default' : 'secondary'}
+                      className={`capitalize text-[10px] px-2 py-0 h-5 ${query.status === 'answered' ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                    >
+                      {query.status}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-2">
+                    <p className="text-xs text-muted-foreground line-clamp-2 italic">
+                      {query.summary ? `"${query.summary}"` : "No summary available."}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Query Details Dialog */}
-      <Dialog open={!!selectedQueryForDetails} onOpenChange={(open) => !open && setSelectedQueryForDetails(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-0 glassmorphism border-primary/20">
-          {selectedQueryForDetails && (
-            <>
-              <DialogHeader className="p-6 pb-2">
-                <div className="flex justify-between items-start">
-                  <DialogTitle className="text-2xl font-bold text-primary">Query Details</DialogTitle>
-                  <Badge variant={selectedQueryForDetails.status === 'answered' ? 'default' : 'secondary'} className="capitalize">
-                    {selectedQueryForDetails.status}
-                  </Badge>
-                </div>
-                <DialogDescription className="flex items-center gap-2 mt-1">
-                  <Clock className="h-4 w-4" />
-                  Forwarded on {format(new Date(selectedQueryForDetails.forwardedAt), "PPP p")}
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
-                <div className="space-y-6 pb-6">
-                  {/* Original Question */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Your Original Question</h4>
-                    <div className="p-4 rounded-xl bg-muted/50 border border-primary/5">
-                      <p className="text-foreground leading-relaxed">
-                        {selectedQueryForDetails.originalQuery || selectedQueryForDetails.question}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Summary if exists */}
-                  {selectedQueryForDetails.summary && (
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-bold uppercase tracking-wider text-primary">Context Summary</h4>
-                      <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 italic text-sm text-muted-foreground">
-                        <Streamdown>{selectedQueryForDetails.summary}</Streamdown>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Answer */}
-                  {selectedQueryForDetails.status === 'answered' && (
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-bold uppercase tracking-wider text-green-600 dark:text-green-400 flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4" /> Expert Recommendation
-                      </h4>
-                      <div className="p-6 rounded-xl bg-green-500/5 border border-green-500/20 shadow-inner">
-                        <div className="prose prose-sm prose-primary dark:prose-invert max-w-none">
-                          <Streamdown>{selectedQueryForDetails.answer || ""}</Streamdown>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pending Message */}
-                  {selectedQueryForDetails.status === 'pending' && (
-                    <div className="p-8 text-center flex flex-col items-center gap-4 bg-amber-500/5 rounded-2xl border border-amber-500/10">
-                      <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
-                        <Clock className="h-6 w-6 text-amber-500 animate-spin-slow" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-amber-600">Still in Review</h4>
-                        <p className="text-sm text-muted-foreground mt-1 px-4">
-                          Our experts are currently analyzing your query. You'll receive a notification as soon as an answer is provided.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="p-6 pt-2 border-t border-primary/10 flex justify-end">
-                <Button onClick={() => setSelectedQueryForDetails(null)} className="rounded-full px-8">
-                  Close Details
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <QueryDetailsDialog 
+        query={selectedQueryForDetails} 
+        isOpen={!!selectedQueryForDetails} 
+        onClose={() => setSelectedQueryForDetails(null)} 
+      />
     </div>
   );
 }

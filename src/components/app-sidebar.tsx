@@ -59,6 +59,11 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       url: "/chat-live",
       icon: Radio,
     },
+    ...(!isOfficer ? [{
+      title: "My Queries",
+      url: "/app/queries",
+      icon: Sprout,
+    }] : []),
   ]
 
   return (
