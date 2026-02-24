@@ -8,19 +8,20 @@ import {
   CheckCircle2, 
   Clock, 
   BadgeHelp,
-  Leaf,
   Sprout
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import { useFarmerQueries } from "../../hooks/useFarmerQueries";
 import { useNotifications } from "../../hooks/useNotifications";
 import { useAppAuth } from "@/providers/AuthProvider";
+import type { ForwardedQuery } from "../../hooks/useOfficerQueries";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -29,14 +30,23 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Streamdown } from "streamdown";
 
 export function FarmerDashboardView() {
   const { user } = useAppAuth();
   const { data: queries, isLoading: queriesLoading } = useFarmerQueries();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'queries'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'queries' | 'answered'>('overview');
+  const [selectedQueryForDetails, setSelectedQueryForDetails] = useState<ForwardedQuery | null>(null);
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -46,27 +56,21 @@ export function FarmerDashboardView() {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="flex flex-1 flex-col gap-6 p-4 max-w-7xl mx-auto w-full">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6 border-primary/10">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-primary/10 rounded-2xl">
-            <Leaf className="h-8 w-8 text-primary animate-pulse" />
-          </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
               {greeting()}, <span className="text-primary">{user?.name || "Farmer"}</span>
             </h1>
-            <p className="text-muted-foreground flex items-center gap-1 mt-1">
-              <MapPin className="h-4 w-4" /> {user?.address || "Location not set"}
-            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="relative h-12 w-12 rounded-xl border-primary/20 bg-background/50 backdrop-blur-sm">
+              <Button variant="outline" size="icon" className="relative rounded-full border-primary/20 bg-background/50 backdrop-blur-sm">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
@@ -114,7 +118,7 @@ export function FarmerDashboardView() {
           </DropdownMenu>
 
           <Link to="/chat">
-            <Button className="h-12 px-6 rounded-xl font-semibold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+            <Button className="rounded-full font-semibold shadow-lg shadow-primary/20 transition-all active:scale-95">
               Ask AI Assistant
             </Button>
           </Link>
@@ -206,7 +210,7 @@ export function FarmerDashboardView() {
             </h2>
             <div className="flex bg-muted p-1 rounded-lg">
               <Button 
-                variant={activeTab === 'overview' ? 'secondary' : 'ghost'} 
+                variant={activeTab === 'overview' ? 'default' : 'ghost'} 
                 size="sm" 
                 className="h-8 px-4 rounded-md text-xs font-semibold"
                 onClick={() => setActiveTab('overview')}
@@ -214,12 +218,20 @@ export function FarmerDashboardView() {
                 All Queries
               </Button>
               <Button 
-                variant={activeTab === 'queries' ? 'secondary' : 'ghost'} 
+                variant={activeTab === 'queries' ? 'default' : 'ghost'} 
                 size="sm" 
                 className="h-8 px-4 rounded-md text-xs font-semibold"
                 onClick={() => setActiveTab('queries')}
               >
                 Pending
+              </Button>
+              <Button 
+                variant={activeTab === 'answered' ? 'default' : 'ghost'} 
+                size="sm" 
+                className="h-8 px-4 rounded-md text-xs font-semibold"
+                onClick={() => setActiveTab('answered')}
+              >
+                Answered
               </Button>
             </div>
           </div>
@@ -252,7 +264,12 @@ export function FarmerDashboardView() {
                   </Link>
                 </div>
               ) : (
-                queries?.filter(q => activeTab === 'overview' || q.status === 'pending').map((query) => (
+                queries?.filter((q: ForwardedQuery) => {
+                  if (activeTab === 'overview') return true;
+                  if (activeTab === 'queries') return q.status === 'pending';
+                  if (activeTab === 'answered') return q.status === 'answered';
+                  return true;
+                }).map((query: ForwardedQuery) => (
                   <Card key={query._id} className="border-primary/5 hover:border-primary/20 transition-all hover:shadow-md group overflow-hidden">
                     <div className="absolute top-0 right-0 p-4">
                       <Badge 
@@ -294,7 +311,12 @@ export function FarmerDashboardView() {
                           <p className="text-sm text-foreground line-clamp-4 leading-relaxed">
                             {query.answer}
                           </p>
-                          <Button variant="link" size="sm" className="px-0 h-auto mt-2 text-primary font-bold hover:no-underline">
+                          <Button 
+                            variant="link" 
+                            size="sm" 
+                            className="px-0 h-auto mt-2 text-primary font-bold hover:no-underline"
+                            onClick={() => setSelectedQueryForDetails(query)}
+                          >
                             Read Full Answer <ArrowRight className="h-3 w-3 ml-1" />
                           </Button>
                         </div>
@@ -316,6 +338,87 @@ export function FarmerDashboardView() {
           </ScrollArea>
         </div>
       </div>
+
+      {/* Query Details Dialog */}
+      <Dialog open={!!selectedQueryForDetails} onOpenChange={(open) => !open && setSelectedQueryForDetails(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-0 glassmorphism border-primary/20">
+          {selectedQueryForDetails && (
+            <>
+              <DialogHeader className="p-6 pb-2">
+                <div className="flex justify-between items-start">
+                  <DialogTitle className="text-2xl font-bold text-primary">Query Details</DialogTitle>
+                  <Badge variant={selectedQueryForDetails.status === 'answered' ? 'default' : 'secondary'} className="capitalize">
+                    {selectedQueryForDetails.status}
+                  </Badge>
+                </div>
+                <DialogDescription className="flex items-center gap-2 mt-1">
+                  <Clock className="h-4 w-4" />
+                  Forwarded on {format(new Date(selectedQueryForDetails.forwardedAt), "PPP p")}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
+                <div className="space-y-6 pb-6">
+                  {/* Original Question */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Your Original Question</h4>
+                    <div className="p-4 rounded-xl bg-muted/50 border border-primary/5">
+                      <p className="text-foreground leading-relaxed">
+                        {selectedQueryForDetails.originalQuery || selectedQueryForDetails.question}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Summary if exists */}
+                  {selectedQueryForDetails.summary && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-primary">Context Summary</h4>
+                      <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 italic text-sm text-muted-foreground">
+                        <Streamdown>{selectedQueryForDetails.summary}</Streamdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Answer */}
+                  {selectedQueryForDetails.status === 'answered' && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-green-600 dark:text-green-400 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" /> Expert Recommendation
+                      </h4>
+                      <div className="p-6 rounded-xl bg-green-500/5 border border-green-500/20 shadow-inner">
+                        <div className="prose prose-sm prose-primary dark:prose-invert max-w-none">
+                          <Streamdown>{selectedQueryForDetails.answer || ""}</Streamdown>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pending Message */}
+                  {selectedQueryForDetails.status === 'pending' && (
+                    <div className="p-8 text-center flex flex-col items-center gap-4 bg-amber-500/5 rounded-2xl border border-amber-500/10">
+                      <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+                        <Clock className="h-6 w-6 text-amber-500 animate-spin-slow" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-amber-600">Still in Review</h4>
+                        <p className="text-sm text-muted-foreground mt-1 px-4">
+                          Our experts are currently analyzing your query. You'll receive a notification as soon as an answer is provided.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="p-6 pt-2 border-t border-primary/10 flex justify-end">
+                <Button onClick={() => setSelectedQueryForDetails(null)} className="rounded-full px-8">
+                  Close Details
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
