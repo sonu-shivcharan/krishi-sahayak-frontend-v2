@@ -6,7 +6,9 @@ import {
   MessageSquare,
   Radio,
   Sprout,
+  FileUp,
 } from "lucide-react"
+
 import { Link } from "@tanstack/react-router"
 
 import { NavUser } from "@/components/nav-user"
@@ -60,11 +62,15 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       icon: Radio,
     },
     ...(!isOfficer ? [{
-      title: "My Queries",
-      url: "/app/queries",
       icon: Sprout,
     }] : []),
+    ...(isOfficer ? [{
+      title: "Scheme Upload",
+      url: "#",
+      icon: FileUp,
+    }] : []),
   ]
+
 
   return (
     <Sidebar collapsible="icon" {...props}>
