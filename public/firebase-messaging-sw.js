@@ -1,5 +1,30 @@
 // public/firebase-messaging-sw.js
 
+self.addEventListener("push", (event) => {
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      if (payload.notification) {
+        event.stopImmediatePropagation(); // Prevent Firebase from handling it
+        const notificationTitle = payload.notification.title;
+        const notificationOptions = {
+          body: payload.notification.body,
+          icon: "/vite.svg", // Add the icon on the client side
+          data: payload.data || {},
+        };
+        event.waitUntil(
+          self.registration.showNotification(
+            notificationTitle,
+            notificationOptions,
+          ),
+        );
+      }
+    } catch (err) {
+      console.error("[SW] Error parsing push event data", err);
+    }
+  }
+});
+
 importScripts(
   "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js",
 );
@@ -19,14 +44,21 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage(function (payload) {
-  console.log("[SW] Received background message:", payload);
-
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: "/vite.svg", // optional
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const urlToOpen = e.notification.data?.url || "/";
+  e.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url.includes(urlToOpen) && "focus" in client) {
+            return client.focus();
+          }
+        }
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      }),
+  );
 });
